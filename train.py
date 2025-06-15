@@ -98,7 +98,9 @@ class SimpleTrainer2d:
             out = self.gaussian_model()
         mse_loss = F.mse_loss(out["render"].float(), self.gt_image.float())
         psnr = 10 * math.log10(1.0 / mse_loss.item())
-        ms_ssim_value = ms_ssim(out["render"].float(), self.gt_image.float(), data_range=1, size_average=True).item()
+        render_gray = out["render"].mean(dim=1, keepdim=True)
+        # ms_ssim_value = ms_ssim(out["render"].float(), self.gt_image.float(), data_range=1, size_average=True).item()
+        ms_ssim_value = ms_ssim(render_gray.float(), self.gt_image.float(), data_range=1, size_average=True).item()
         self.logwriter.write("Test PSNR:{:.4f}, MS_SSIM:{:.6f}".format(psnr, ms_ssim_value))
         if self.save_imgs:
             transform = transforms.ToPILImage()
@@ -168,11 +170,17 @@ def main(argv):
         image_length, start = 24, 0
     elif args.data_name == "DIV2K_valid_LRX2":
         image_length, start = 100, 800
+    elif args.data_name == "ct_angio":
+        start = 0
+        image_length = 2518
+
     for i in range(start, start+image_length):
         if args.data_name == "kodak":
             image_path = Path(args.dataset) / f'kodim{i+1:02}.png'
         elif args.data_name == "DIV2K_valid_LRX2":
             image_path = Path(args.dataset) /  f'{i+1:04}x2.png'
+        elif args.data_name == 'ct_angio':
+            image_path = Path(args.dataset) / f'{i:04}_fixed.png'
 
         trainer = SimpleTrainer2d(image_path=image_path, num_points=args.num_points, 
             iterations=args.iterations, model_name=args.model_name, args=args, model_path=args.model_path)
